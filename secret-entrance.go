@@ -63,7 +63,7 @@ func loadRotationsFile() []Rotation {
 		// fmt.Println(rotations)
 		i++ // consume the \n
 	}
-	fmt.Println(len(rotations))
+	fmt.Printf("Number of instructions for debug: %d\n", len(rotations))
 	// fmt.Println(rotations)
 	return rotations
 }
@@ -71,8 +71,59 @@ func loadRotationsFile() []Rotation {
 func getPassword(dial *CircularSlice[int], rotations []Rotation) int {
 	var password int
 	var dialVal int
+	var startPos int
 	for _, v := range rotations {
-		// fmt.Println(rotations[i])
+		// fmt.Println("-------------------")
+		// fmt.Scanln()
+		// fmt.Print("Rotation\n")
+		// fmt.Print(v)
+		var passed int
+
+		switch v.direction {
+		case "L":
+			startPos = dial.i
+			// fmt.Printf("\nStarting position: %d\n", startPos)
+
+			dialVal = dial.Previous(v.dist)
+			// fmt.Printf("\nEnding position: %d\n", dialVal)
+			if dialVal > startPos {
+				passed = 1
+			}
+			// fmt.Printf("\nPassword in swtich: %d\n", password)
+
+		case "R":
+			startPos = dial.i
+			// fmt.Printf("\nStarting position: %d\n", startPos)
+			dialVal = dial.Next(v.dist)
+			// fmt.Printf("\nEnding position: %d\n", dialVal)
+			if dialVal < startPos {
+				passed = 1
+			}
+			// fmt.Printf("\nPassword in swtich: %d\n", password)
+		}
+
+		password += (v.dist / 100)
+		if dialVal == 0 && v.dist%100 != 0 {
+			password++
+		} else if passed == 1 && startPos != 0 {
+			password += 1
+		}
+
+		// fmt.Printf("\nPassword after sw in loop: %d\n", password)
+
+	}
+
+	return password
+}
+func getPasswordOLd(dial *CircularSlice[int], rotations []Rotation) int {
+	var password int
+	var dialVal int
+	var startPos int
+
+	for _, v := range rotations {
+		startPos = dial.i
+
+		// Move the dial as before
 		switch v.direction {
 		case "L":
 			dialVal = dial.Previous(v.dist)
@@ -80,17 +131,34 @@ func getPassword(dial *CircularSlice[int], rotations []Rotation) int {
 			dialVal = dial.Next(v.dist)
 		}
 
-		if dialVal == 0 {
-			password += 1
+		// Counting logic (robust)
+		fullPasses := v.dist / 100
+		partialDist := v.dist % 100
+		crossed0 := false
+
+		if partialDist > 0 {
+			switch v.direction {
+			case "L":
+				if startPos-partialDist < 0 {
+					crossed0 = true
+				}
+			case "R":
+				if startPos+partialDist >= 100 {
+					crossed0 = true
+				}
+			}
 		}
 
+		password += fullPasses
+		if crossed0 || (dialVal == 0 && partialDist != 0) {
+			password++
+		}
 	}
 
 	return password
 }
 
 func main() {
-	fmt.Println("hello")
 	rotations := loadRotationsFile()
 	dial := NewCircularSlice([]int{
 		0, 1, 2, 3, 4, 5, 6, 7, 8, 9,
@@ -107,6 +175,6 @@ func main() {
 
 	result := getPassword(dial, rotations)
 
-	fmt.Println(result)
+	fmt.Printf("Password: %d\n", result)
 
 }
